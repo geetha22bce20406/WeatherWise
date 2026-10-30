@@ -1,8 +1,8 @@
 import axios from "axios";
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080/api",
-  timeout: 10000,
+  baseURL: import.meta.env.VITE_API_URL || "https://weatherapp-backend-imds-psa3.onrender.com/api",
+  timeout: 60000, // Increased to 60s to handle Render free tier cold starts (~50s)
 });
 
 api.interceptors.request.use((cfg) => {
@@ -28,6 +28,6 @@ api.interceptors.response.use(
 
 export const errMsg = (err, fallback = "Something went wrong.") =>
   err.response?.data?.message ||
-  (err.code === "ERR_NETWORK"
-    ? "Can't reach the server. Is the backend running on port 8080?"
+  (err.code === "ERR_NETWORK" || err.code === "ECONNABORTED"
+    ? "Cannot reach the server. The free backend service may be waking up from inactivity (can take ~50 seconds)."
     : fallback);
