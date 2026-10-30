@@ -1,13 +1,24 @@
-# Stage 1: Build the JAR
-FROM maven:3.9.6-eclipse-temurin-21 AS build
+# --- Stage 1: Build ---
+FROM maven:3.9-eclipse-temurin-21 AS builder
 WORKDIR /app
-COPY pom.xml .
-COPY src ./src
-RUN mvn clean package -DskipTests
 
-# Stage 2: Run the JAR
-FROM eclipse-temurin:17-jre
+# Copy dependency configuration first to leverage Docker layer caching
+COPY pom.xml .
+
+# Download dependencies in Batch Mode (-B suppresses progress log spam)
+RUN mvn dependency:go-offline -B
+
+# Copy source code and build application binary
+COPY src ./src
+RUN mvn package -DskipTests -B
+
+# --- Stage 2: Runtime ---
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-COPY --from=build /app/target/*.jar app.jar
-EXPOSE 8081
+
+# Copy built JAR from builder stage
+COPY --from=builder /app/target/*.jar app.jar
+
+# Expose app port and run
+EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
